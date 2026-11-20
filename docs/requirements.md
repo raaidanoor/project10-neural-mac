@@ -15,6 +15,6 @@ Course proposal ??1?2, 4.10 and 6 govern the MAC. Lab manual ??3?4 govern the wo
 | PHY-01 | One GF180 tile. Report functional placed area divided by tile and core areas, target at least 60% gross and document infeasibility if needed. Exclude unused padding and physical-only cells | Synthesis and post-CTS/final placement reports and utilization calculations |
 | PHY-02 | Report worst setup and hold slack, routing, antenna, DRC/LVS and GDSII | Archived flow reports and GDSII under `results/`, final assessment in `report/` |
 
-Stage 2 decisions include operand and centroid widths, overflow policy, buffering and reuse invalidation, packet details, clock period, and reconstruction dataset. The plan proposes signed 8-bit operands and centroids. Record final decisions in the versioned architecture and protocol.
+Stage 2 evidence is in the [architecture and worked examples](architecture_v1.md), [host protocol](protocol_v1.md), and [Python reference model](../scripts/golden_model.py).
 
 Use paths such as `results/exp_YYYYMMDD_<commit>_cb16_n32_acc24/`. Record tool and PDK revisions, clock period, corner and commands for each physical experiment. Keep a local milestone archive and back up source daily.
