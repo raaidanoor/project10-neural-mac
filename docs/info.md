@@ -1,20 +1,34 @@
-<!---
-
-This file is used to generate your project datasheet. Please fill in the information below and delete any unused
-sections.
-
-You can also include images in this folder and reference them in the markdown. Each image must be less than
-512 kb in size, and the combined size of all images must be less than 1 MB.
--->
-
 ## How it works
 
-Explain how your project works
+The Codebook-Shared Neural MAC stores 16 programmable signed 8-bit weights. Each input pair selects a weight by its index and supplies a signed 8-bit input. The chip multiplies them and adds the product to a signed 24-bit accumulator. Consecutive pairs using the same index reuse the previous weight lookup. The total wraps on signed overflow and sets a sticky overflow flag.
 
-## How to test
+## Host interface
 
-Explain how to use your project
+| Pins | Function |
+| --- | --- |
+| `ui_in[7:5]` | Opcode. `000` writes the codebook, `001` starts or streams a calculation, and `010` requests readback. |
+| `ui_in[4:3]` | Reserved. Drive zero. |
+| `ui_in[2:0]` | `VALID`, `LAST`, and `START`, respectively. |
+| `uo_out[7:0]` | Two zero bits, then `OVERFLOW`, `RESULT_BYTE_VALID`, `ERROR`, `DONE`, `BUSY`, and `READY` in descending bit order. |
+| `uio[7:0]` | Shared data byte. The chip drives it while `RESULT_BYTE_VALID` is high. |
 
-## External hardware
+Commands are sampled on rising clock edges while `READY` and `VALID` are high. Present each byte for one accepted edge. A malformed command sets `ERROR` and leaves the current step available for retry. An accepted standalone `START` clears the accumulator and flags, cancels any pending slot or index, and preserves the codebook.
 
-List external hardware used in your project (e.g. PMOD, LED display, etc), if any
+Active-low reset clears the codebook and transaction. With reset asserted or `ena` low, status outputs are zero and all shared pins are released. A pending write or calculation resumes after reselection. Deselecting across a rising edge during readback or a handoff cancels that transfer. Request readback again after reselecting to receive the saved result from byte zero.
+
+## Example transaction
+
+With the chip selected and reset released, send the following bytes in hexadecimal while `READY` is high.
+
+| Step | `ui_in` | Host drives `uio` |
+| --- | --- | --- |
+| Select slot 3 to write | `04` | `03` |
+| Write weight −2 | `04` | `FE` |
+| Start calculation | `25` | Released |
+| First index | `24` | `03` |
+| First input (+5) | `24` | `05` |
+| Second index | `24` | `03` |
+| Final input (+4) | `26` | `04` |
+| Request result once `DONE` is high | `44` | Released |
+
+Keep the bus released through readback. The request is followed by one full released clock cycle. When `RESULT_BYTE_VALID` is high, sample a byte on each rising edge. The bytes are `EE FF FF`, the 24-bit two's-complement encoding of −18 in least-significant-byte-first order. After the last sample, the chip releases the bus for one full clock cycle before raising `READY`. Drive `VALID` low when idle. See the [full host protocol](protocol_v1.md).
