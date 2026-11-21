@@ -1,7 +1,7 @@
 # Tiny Tapeout project information
 project:
   title:        "Codebook-Shared Neural MAC"
-  author:       ""      # Your name
+  author:       "Raaida Noor Mahbub"
   discord:      ""      # Your discord username, for communication and automatically assigning you a Tapeout role (optional)
   description:  "Signed multiply-accumulate with a programmable weight codebook and consecutive-index reuse"
   language:     "Verilog" # other examples include SystemVerilog, Amaranth, VHDL, etc
