@@ -11,6 +11,8 @@ from cocotb.triggers import Timer
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 from golden_model import calculate
 
+CLOCK_PERIOD_NS = int(os.environ.get("CLOCK_PERIOD_NS", "20"))
+
 READY, BUSY, DONE, ERROR, BYTE_VALID, OVERFLOW = (1 << bit for bit in range(6))
 WRITE, START, STREAM, FINAL, READ = 0x04, 0x25, 0x24, 0x26, 0x44
 RELEASED = "ZZZZZZZZ"
@@ -44,13 +46,13 @@ class Host:
         dut.ui_in.value = command
         dut.host_drives.value = data is not None
         dut.host_data.value = 0 if data is None else data & 0xFF
-        await Timer(10, unit="ns")
+        await Timer(CLOCK_PERIOD_NS / 2, unit="ns")
         assert not (int(dut.uio_oe.value) and data is not None), "bus contention before rising edge"
         if sample is not None:
             sample_status, sample_byte = sample
             self.check(sample_status, sample_byte, chip_drives=sample_byte is not None)
         dut.clk.value = 1
-        await Timer(10, unit="ns")
+        await Timer(CLOCK_PERIOD_NS / 2, unit="ns")
         if read_byte is None:
             self.check(status, None if data is None else data & 0xFF)
         else:

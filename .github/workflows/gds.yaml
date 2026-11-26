@@ -10,13 +10,19 @@ jobs:
     steps:
       - name: checkout repo
         uses: actions/checkout@v6
-        with:
-          submodules: recursive
 
-      - name: Build GDS
-        uses: TinyTapeout/tt-gds-action@ttgf26c
+      - name: Verify signed-off inputs
+        working-directory: submission/ttgf26c
+        run: sha256sum -c candidate.sha256
+
+      - name: Package signed-off GDS
+        uses: TinyTapeout/tt-gds-action/custom_gds@ttgf26c
         with:
           pdk: gf180mcuD
+          top_module: tt_um_raaidanoor_neural_mac
+          gds_path: submission/ttgf26c/tt_um_raaidanoor_neural_mac.gds
+          lef_path: submission/ttgf26c/tt_um_raaidanoor_neural_mac.lef
+          verilog_path: submission/ttgf26c/tt_um_raaidanoor_neural_mac.v
 
   precheck:
     needs: gds
@@ -34,14 +40,47 @@ jobs:
         with:
           submodules: recursive
 
-      - name: GL test
-        uses: TinyTapeout/tt-gds-action/gl_test@ttgf26c
+      # custom_gds supplies the PDK name but omits the version required by gl_test.
+      - uses: actions/download-artifact@v7
+        with:
+          name: tt_submission
 
-  viewer:
-    needs: gds
-    runs-on: ubuntu-24.04
-    permissions:
-      pages: write      # to deploy to Pages
-      id-token: write   # to verify the deployment originates from an appropriate source
-    steps:
-      - uses: TinyTapeout/tt-gds-action/viewer@ttgf26c
+      - name: Verify published candidate
+        working-directory: tt_submission
+        run: |
+          sha256sum -c ../submission/ttgf26c/candidate.sha256
+          jq -e '.PDK == "gf180mcuD"' pdk.json
+          jq -e --arg commit "$GITHUB_SHA" '.commit == $commit' commit_id.json
+
+      - name: Install signed-off GF180 cell models
+        uses: TinyTapeout/ciel-action@v1
+        with:
+          pdk_name: gf180mcuD
+          pdk_version: "54435919abffb937387ec956209f9cf5fd2dfbee"
+          pdk_root: /home/runner/pdk
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+
+      - name: Install simulator and test dependencies
+        run: |
+          wget https://github.com/TinyTapeout/iverilog/releases/download/v13.0/iverilog_13.0-1_amd64.deb
+          sudo apt-get update
+          sudo apt-get install -y ./iverilog_13.0-1_amd64.deb
+          python -m pip install -r test/requirements.txt
+
+      - name: Run powered gate-level tests
+        run: |
+          cp tt_submission/tt_um_raaidanoor_neural_mac.v test/gate_level_netlist.v
+          make -C test GATES=yes ENTRIES=8 ACCW=16 CLOCK_PERIOD_NS=60 PDK_ROOT=/home/runner/pdk
+          python -m cocotb_tools.check_results test/results.xml
+
+      - name: Upload gate-level evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: gatelevel_test_results
+          path: |
+            test/results.xml
+            test/tb.fst

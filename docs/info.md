@@ -1,6 +1,8 @@
 ## How it works
 
-The Codebook-Shared Neural MAC stores 16 programmable signed 8-bit weights. Each input pair selects a weight by its index and supplies a signed 8-bit input. The chip multiplies them and adds the product to a signed 24-bit accumulator. Consecutive pairs using the same index reuse the previous weight lookup. The total wraps on signed overflow and sets a sticky overflow flag.
+The Codebook-Shared Neural MAC stores eight programmable signed 8-bit weights. Each input pair selects a weight by its 3-bit index and supplies a signed 8-bit input. The chip multiplies them and adds the product to a signed 16-bit accumulator. Consecutive pairs using the same index reuse the previous weight lookup. The total wraps on signed overflow and sets a sticky overflow flag.
+
+The layout was verified at a 60 ns clock period (approximately 16.67 MHz).
 
 ## Host interface
 
@@ -31,4 +33,4 @@ With the chip selected and reset released, send the following bytes in hexadecim
 | Final input (+4) | `26` | `04` |
 | Request result once `DONE` is high | `44` | Released |
 
-Keep the bus released through readback. The request is followed by one full released clock cycle. When `RESULT_BYTE_VALID` is high, sample a byte on each rising edge. The bytes are `EE FF FF`, the 24-bit two's-complement encoding of −18 in least-significant-byte-first order. After the last sample, the chip releases the bus for one full clock cycle before raising `READY`. Drive `VALID` low when idle. See the [full host protocol](protocol_v1.md).
+Keep the bus released through readback. The request is followed by one full released clock cycle. When `RESULT_BYTE_VALID` is high, sample a byte on each rising edge. The bytes are `EE FF`, the 16-bit two's-complement encoding of −18 in least-significant-byte-first order. After the last sample, the chip releases the bus for one full clock cycle before raising `READY`. Drive `VALID` low when idle.

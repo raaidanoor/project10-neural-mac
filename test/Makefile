@@ -7,9 +7,16 @@ FST ?= -fst # Use more efficient FST format
 TOPLEVEL_LANG ?= verilog
 SRC_DIR = $(CURDIR)/../src
 PROJECT_SOURCES = project.v mac_codebook_core.v signed_mac.v
+ifeq ($(GATES),yes)
+ACCW ?= 16
+ENTRIES ?= 8
+CLOCK_PERIOD_NS ?= 60
+else
 ACCW ?= 24
 ENTRIES ?= 16
-export ACCW ENTRIES
+CLOCK_PERIOD_NS ?= 20
+endif
+export ACCW ENTRIES CLOCK_PERIOD_NS
 
 ifneq ($(GATES),yes)
 
@@ -20,8 +27,8 @@ VERILOG_SOURCES += $(addprefix $(SRC_DIR)/,$(PROJECT_SOURCES))
 
 else
 
-ifneq ($(ENTRIES):$(ACCW),16:24)
-$(error Gate-level tests use the default ENTRIES=16 ACCW=24 netlist)
+ifneq ($(ENTRIES):$(ACCW),8:16)
+$(error Gate-level tests use the signed-off ENTRIES=8 ACCW=16 netlist)
 endif
 
 # Gate level simulation:
